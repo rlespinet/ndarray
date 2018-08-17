@@ -150,15 +150,24 @@ struct ndarray_view {
         }
     }
 
-    template<uint V, typename ...Args>
-    ndarray_view<T, V> get_view(Args... args) {
+    template<typename ...Args>
+    ndarray_view<T, D - sizeof...(Args)> get_view(Args... args) {
         constexpr uint A = sizeof...(args);
-        static_assert(V == D - A,
-                      "Output of get_view has wrong dimension");
 
-        ndarray_view<T, V> view;
+        ndarray_view<T, D - A> view;
         view.m_data = &m_data[compute_id(args...)];
-        copy_array<A, 0, V>::execute(m_dims, view.m_dims);
+        copy_array<A, 0, D - A>::forward(m_dims, view.m_dims);
+
+        return view;
+    }
+
+    template<typename ...Args>
+    const ndarray_view<T, D - sizeof...(Args)> get_view(Args... args) const {
+        constexpr uint A = sizeof...(args);
+
+        ndarray_view<T, D - A> view;
+        view.m_data = &m_data[compute_id(args...)];
+        copy_array<A, 0, D - A>::forward(m_dims, view.m_dims);
 
         return view;
     }
@@ -206,13 +215,11 @@ struct ndarray : public ndarray_view<T, D> {
     ndarray(Args... args)
         : ndarray_view<T, D>(nullptr, args...) {
         uint s = this->size();
-        std::cout << "new : " << s + this->N - 1 << std::endl;
         this->m_data = new T[s + this->N - 1]; // Add extra space for simd computations (N - 1)
     }
 
     ~ndarray() {
         if (this->m_data != nullptr) {
-            std::cout << "delete : " << this->size() + this->N - 1 << std::endl;
             delete[] this->m_data;
         }
     }
@@ -232,6 +239,36 @@ namespace nd
     }
 }
 
+template<uint D>
+void print(const ndarray_view<double, D> &mat, uint indent = 0) {
+    std::cout << "[";
+    for (uint i = 0; i < mat.m_dims[0]; i++) {
+        if (i != 0) {
+            std::cout << "\n\n" << std::string(indent+1, ' ');
+        }
+        const ndarray_view<double, D-1> view = mat.get_view(i);
+        print(view, indent+1);
+        // std::cout << "\n\n";
+    }
+    std::cout << "]";
+}
+
+template<>
+void print<2>(const ndarray_view<double, 2> &mat, uint indent) {
+    std::cout << "[";
+    for (uint i = 0; i < mat.m_dims[0]; i++) {
+        if (i != 0) {
+            std::cout << "\n" << std::string(indent+1, ' ');
+        }
+        std::cout << "[";
+        for (uint j = 0; j < mat.m_dims[1]; j++) {
+            std::printf("%8.2f ", mat(i, j));
+        }
+        std::cout << "]";
+    }
+    std::cout << "]";
+}
+
 ndarray<double, 2> dot(const ndarray_view<double, 2> &matA, const ndarray_view<double, 2> &matB) {
     ndarray<double, 2> matC(matA.m_dims[0], matB.m_dims[1]);
     cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
@@ -240,4 +277,20 @@ ndarray<double, 2> dot(const ndarray_view<double, 2> &matA, const ndarray_view<d
                 matB.m_data, matB.m_dims[0],
                 0.0, matC.m_data, matC.m_dims[0]);
     return matC;
+}
+
+template<uint D>
+void roll_axis_right(ndarray<double, D> &mat) {
+    int rows = compute_product<0, D-1>::execute(mat.m_dims);
+    int cols = mat.m_dims[D-1];
+    mkl_dimatcopy('R', 'T', rows, cols, 1.0, mat.m_data, cols, rows);
+    roll_array_right<0, D>::execute(mat.m_dims);
+}
+
+template<uint D>
+void roll_axis_left(ndarray<double, D> &mat) {
+    int rows = mat.m_dims[0];
+    int cols = compute_product<1, D-1>::execute(mat.m_dims);
+    mkl_dimatcopy('R', 'T', rows, cols, 1.0, mat.m_data, cols, rows);
+    roll_array_left<0, D>::execute(mat.m_dims);
 }

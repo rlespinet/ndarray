@@ -89,11 +89,27 @@ int main() {
         x.m_data[i] = i;
     }
 
-    ndarray_view<double, 2> y = x.get_view<2>(0);
+    ndarray_view<double, 2> y = x.get_view(0);
 
     ndarray<double, 2> z = dot(y, y);
 
+    print(z);
+    std::cout << "\n";
+    roll_axis_right(z);
+    print(z);
+    std::cout << "\n";
+
+    print(x);
+    std::cout << "\n";
+    roll_axis_right(x);
+    print(x);
+    std::cout << "\n";
     roll_axis_left(x);
+    print(x);
+    std::cout << "\n";
+    roll_axis_left(x);
+    print(x);
+    std::cout << "\n";
 
     std::printf("Ndarray addition : %f\n", t.report());
 
