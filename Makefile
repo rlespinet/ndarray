@@ -3,7 +3,7 @@ CXX=g++
 MKL_INC=-DMKL_ILP64 -m64 -I${MKLROOT}/include
 MKL_LIB=-L${MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_intel_ilp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl
 
-CPPFLAGS=-std=c++17 -Ieigen -Ilibsimdpp $(MKL_INC) -O3 -DNDEBUG
+CPPFLAGS=-std=c++11 -Ieigen -Ilibsimdpp $(MKL_INC) -O0 -g -DNDEBUG
 LDFLAGS=$(MKL_LIB)
 
 FILES=test.cpp
