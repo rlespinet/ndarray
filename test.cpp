@@ -69,21 +69,38 @@ int main() {
 
     ////////////////////////////////////////////////////////////////////////////////
 
-    ndarray<double, 2> na = ndarray<double, 2>::from_array(buff_na, 500, 20);
-    ndarray<double, 2> nb = ndarray<double, 2>::from_array(buff_nb, 500, 20);
+    // ndarray_view<double, 2> na = ndarray_view<double, 2>(buff_na, 500, 20);
+    ndarray_view<double, 2> na = nd::map(buff_na, 500, 20);
+    ndarray_view<double, 2> nb = nd::map(buff_nb, 500, 20);
+    ndarray_view<double, 6> nc = nd::map((double*)NULL, 3, 4, 5, 6, 7, 8);
 
     std::printf("Ndarray vector mapping : %f\n", t.report());
 
     std::printf("na_size : %u\n", na.size());
     std::printf("na_id : %u\n", na.compute_id(30, 10));
+    std::printf("nc_id : %u\n", nc.compute_id(1, 2, 1, 2));
 
     for (uint n = 0; n < N_ITER; n++) {
         na += nb;
     }
 
+    ndarray<double, 3> x(2, 3, 3);
+    for (uint i = 0; i < 2*3*3; i++) {
+        x.m_data[i] = i;
+    }
+
+    ndarray_view<double, 2> y = x.get_view<2>(0);
+
+    ndarray<double, 2> z = dot(y, y);
+
+    roll_axis_left(x);
+
     std::printf("Ndarray addition : %f\n", t.report());
 
-
+    delete[] buff_va;
+    delete[] buff_vb;
+    delete[] buff_na;
+    delete[] buff_nb;
 
     // std::ofstream file("dummy.txt");
     // for (uint i = 0; i < na.size(); i++) {
